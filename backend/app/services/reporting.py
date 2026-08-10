@@ -22,7 +22,7 @@ class ReportingService:
         self._db = db
         self._orchestrator = orchestrator or DueDiligenceOrchestrator(llm=get_llm_client())
 
-    def generate(self, document_ids: list[str]) -> dict:
+    def generate(self, document_ids: list[str], created_by: str | None = None) -> dict:
         documents = self._load_documents(document_ids)
         if not documents:
             raise ValueError("No documents found for the requested report.")
@@ -43,8 +43,17 @@ class ReportingService:
             "source_chunk_ids": report.source_chunk_ids,
             "financial_metrics": self._financial_summary(result),
         }
-        self._persist(document_ids, payload)
+        self._persist(document_ids, payload, created_by=created_by)
         return payload
+
+    def delete(self, report_id: str) -> bool:
+        """Delete a report by id; returns False when it does not exist."""
+        row = self._db.get(DueDiligenceReport, report_id)
+        if row is None:
+            return False
+        self._db.delete(row)
+        self._db.commit()
+        return True
 
     def list(self, limit: int = 20, skip: int = 0) -> list[dict]:
         rows = self._db.execute(
@@ -75,13 +84,16 @@ class ReportingService:
             .order_by(DocumentChunk.document_id, DocumentChunk.chunk_index)
         ).scalars().all())
 
-    def _persist(self, document_ids: list[str], payload: dict) -> DueDiligenceReport:
+    def _persist(
+        self, document_ids: list[str], payload: dict, created_by: str | None = None
+    ) -> DueDiligenceReport:
         row = DueDiligenceReport(
             document_ids=json.dumps(document_ids),
             title=payload["title"],
             summary=payload["summary"],
             executive_summary=payload["executive_summary"],
             data=json.dumps(payload),
+            created_by=created_by,
         )
         self._db.add(row)
         self._db.commit()
@@ -113,5 +125,6 @@ class ReportingService:
             "summary": row.summary,
             "executive_summary": row.executive_summary,
             "data": json.loads(row.data),
+            "created_by": row.created_by,
             "created_at": row.created_at.isoformat(),
         }

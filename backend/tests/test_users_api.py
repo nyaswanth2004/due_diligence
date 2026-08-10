@@ -3,6 +3,7 @@ import pytest
 from app.core.security import hash_password
 from app.db import session as db_session
 from app.models import User
+from tests.helpers import make_balance_sheet_pdf, wait_for_status
 
 
 @pytest.fixture(scope="session")
@@ -87,3 +88,49 @@ def test_admin_cannot_delete_self(client):
     me = client.get("/api/v1/auth/me").json()
     resp = client.delete(f"/api/v1/users/{me['id']}")
     assert resp.status_code == 400
+
+
+def test_deleting_user_removes_their_reports(client):
+    resp = client.post(
+        "/api/v1/users",
+        json={
+            "username": "repgen",
+            "email": "repgen@test.local",
+            "password": "somepass123",
+            "role": "analyst",
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    user_id = resp.json()["id"]
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username": "repgen", "password": "somepass123"},
+    )
+    assert login.status_code == 200
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    resp = client.post(
+        "/api/v1/documents",
+        files={"file": ("bal.pdf", make_balance_sheet_pdf(), "application/octet-stream")},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    doc_id = resp.json()["id"]
+    wait_for_status(client, doc_id)
+
+    resp = client.post("/api/v1/reports/generate", json={"document_ids": [doc_id]}, headers=headers)
+    assert resp.status_code == 200, resp.text
+    report_ids = [
+        r["id"]
+        for r in client.get("/api/v1/reports").json()["items"]
+        if r["created_by"] == user_id
+    ]
+    assert report_ids
+
+    resp = client.delete(f"/api/v1/users/{user_id}")
+    assert resp.status_code == 204
+
+    remaining = client.get("/api/v1/reports").json()["items"]
+    assert not any(r["id"] in report_ids for r in remaining)
+    assert not any(r["created_by"] == user_id for r in remaining)

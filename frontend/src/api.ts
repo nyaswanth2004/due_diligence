@@ -91,6 +91,7 @@ export interface ReportItem {
   summary: string;
   executive_summary: string;
   data: ReportPayload;
+  created_by: string | null;
   created_at: string;
 }
 
@@ -154,6 +155,9 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 45000): 
       /* ignore non-JSON error bodies */
     }
     throw new Error(detail);
+  }
+  if (response.status === 204 || response.status === 205) {
+    return undefined as T;
   }
   return response.json() as Promise<T>;
 }
@@ -274,4 +278,8 @@ export function listReports(): Promise<{ total: number; items: ReportItem[] }> {
 
 export function getReport(id: string): Promise<ReportItem> {
   return request(`/api/v1/reports/${id}`);
+}
+
+export function deleteReport(id: string): Promise<void> {
+  return request(`/api/v1/reports/${id}`, { method: "DELETE" });
 }

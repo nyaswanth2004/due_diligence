@@ -24,4 +24,7 @@ class DueDiligenceReport(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     executive_summary: Mapped[str] = mapped_column(Text, default="")
     data: Mapped[str] = mapped_column(Text, default="{}")  # JSON payload
+    created_by: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True
+    )  # users.id of the generating user
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

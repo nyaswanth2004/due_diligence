@@ -54,3 +54,29 @@ def test_reports_list_and_get(client, uploaded_documents):
 def test_get_missing_report_returns_404(client):
     resp = client.get("/api/v1/reports/nope")
     assert resp.status_code == 404
+
+
+def test_generated_report_records_creator(client, uploaded_documents):
+    client.post("/api/v1/reports/generate", json={"document_ids": uploaded_documents})
+    item = client.get("/api/v1/reports").json()["items"][0]
+    me = client.get("/api/v1/auth/me").json()
+    assert item["created_by"] == me["id"]
+
+
+def test_delete_report_api(client, uploaded_documents):
+    client.post("/api/v1/reports/generate", json={"document_ids": uploaded_documents})
+    items = client.get("/api/v1/reports").json()["items"]
+    assert items
+    report_id = items[0]["id"]
+
+    resp = client.delete(f"/api/v1/reports/{report_id}")
+    assert resp.status_code == 204
+
+    assert client.get(f"/api/v1/reports/{report_id}").status_code == 404
+    remaining = [r["id"] for r in client.get("/api/v1/reports").json()["items"]]
+    assert report_id not in remaining
+
+
+def test_delete_missing_report_returns_404(client):
+    resp = client.delete("/api/v1/reports/nope")
+    assert resp.status_code == 404

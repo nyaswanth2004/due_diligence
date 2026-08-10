@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import client_ip, require_roles
 from app.core.security import hash_password
 from app.db.session import get_db
-from app.models import User
+from app.models import DueDiligenceReport, User
 from app.schemas.user import UserCreate, UserList, UserOut, UserUpdate
 from app.services.audit import log_audit
 
@@ -113,6 +113,12 @@ def delete_user(
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    deleted_reports = db.execute(
+        select(func.count())
+        .select_from(DueDiligenceReport)
+        .where(DueDiligenceReport.created_by == user_id)
+    ).scalar_one()
+    db.execute(delete(DueDiligenceReport).where(DueDiligenceReport.created_by == user_id))
     db.delete(target)
     db.commit()
     log_audit(
@@ -120,6 +126,9 @@ def delete_user(
         user=user,
         resource_type="user",
         resource_id=user_id,
-        details={"username": target.username},
+        details={
+            "username": target.username,
+            "deleted_reports": deleted_reports,
+        },
         ip_address=client_ip(request),
     )

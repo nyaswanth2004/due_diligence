@@ -24,7 +24,7 @@ def generate_report(
 ) -> dict:
     service = ReportingService(db)
     try:
-        payload = service.generate(body.document_ids)
+        payload = service.generate(body.document_ids, created_by=user.id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except RuntimeError as exc:
@@ -61,3 +61,22 @@ def get_report(
     if report is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
     return report
+
+
+@router.delete("/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_report(
+    report_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles("admin", "analyst")),
+) -> None:
+    service = ReportingService(db)
+    if not service.delete(report_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report not found")
+    log_audit(
+        action="report.delete",
+        user=user,
+        resource_type="report",
+        resource_id=report_id,
+        ip_address=client_ip(request),
+    )

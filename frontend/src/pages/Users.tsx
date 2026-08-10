@@ -319,7 +319,7 @@ export function Users() {
           <DialogHeader>
             <DialogTitle>Remove user?</DialogTitle>
             <DialogDescription>
-              “{confirmDelete?.username}” will lose access to VeritasIQ immediately.
+              “{confirmDelete?.username}” will lose access to VeritasIQ immediately, and any reports they generated will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

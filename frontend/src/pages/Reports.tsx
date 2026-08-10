@@ -11,13 +11,14 @@ import {
   Minus,
   Calendar,
   ListChecks,
+  Trash2,
 } from "lucide-react";
 import { PageHeader, PageError, EmptyState } from "../components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
-import { listReports, getReport, generateReport, listDocuments, type ReportItem, type ReportPayload, type RatioRow, type RedFlagRow } from "../api";
+import { listReports, getReport, generateReport, deleteReport, listDocuments, type ReportItem, type ReportPayload, type RatioRow, type RedFlagRow } from "../api";
 import { isAnalyst } from "../auth";
 import { cn } from "../lib/utils";
 
@@ -31,6 +32,8 @@ export function Reports() {
   const [readyDocs, setReadyDocs] = React.useState<{ id: string; filename: string }[]>([]);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [generating, setGenerating] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState<ReportItem | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -96,6 +99,23 @@ export function Reports() {
     }
   };
 
+  const removeReport = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteReport(confirmDelete.id);
+      setActive((prev) => (prev?.id === confirmDelete.id ? null : prev));
+      setReports((prev) => prev?.filter((r) => r.id !== confirmDelete.id) || null);
+      setConfirmDelete(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+      setConfirmDelete(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="glass flex h-64 items-center justify-center rounded-xl">
@@ -140,13 +160,13 @@ export function Reports() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence>
             {items.map((r) => (
-              <motion.button
+              <motion.div
                 key={r.id}
                 layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => void openDetail(r.id)}
-                className="group text-left"
+                className="group cursor-pointer text-left"
               >
                 <Card className="h-full p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
                   <div className="mb-3 flex items-center justify-between">
@@ -162,12 +182,27 @@ export function Reports() {
                   <p className="mb-4 line-clamp-3 text-xs leading-relaxed text-muted">{r.summary}</p>
                   <div className="flex items-center justify-between">
                     <Badge variant="outline">{r.data.document_count} documents</Badge>
-                    <span className="text-[11px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                      Open report →
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {isAnalyst() && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted opacity-0 transition-opacity group-hover:opacity-100 hover:text-danger"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDelete(r);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <span className="text-[11px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                        Open report →
+                      </span>
+                    </div>
                   </div>
                 </Card>
-              </motion.button>
+              </motion.div>
             ))}
           </AnimatePresence>
         </div>
@@ -223,6 +258,26 @@ export function Reports() {
             <Button onClick={() => void generate()} disabled={generating || selected.size === 0}>
               {generating && <Loader2 className="h-4 w-4 animate-spin" />}
               {generating ? "Generating…" : `Generate (${selected.size})`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmDelete} onOpenChange={() => !deleting && setConfirmDelete(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete report?</DialogTitle>
+            <DialogDescription>
+              “{confirmDelete?.title}” and its generated data will be permanently deleted. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setConfirmDelete(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={() => void removeReport()} disabled={deleting}>
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Trash2 className="h-4 w-4" /> {deleting ? "Deleting…" : "Delete report"}
             </Button>
           </DialogFooter>
         </DialogContent>
