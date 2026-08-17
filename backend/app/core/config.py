@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: list[str] = ["*"]
 
     DATABASE_URL: str = "sqlite:///./veritasiq.db"
     REDIS_URL: str = "redis://localhost:6379/0"
