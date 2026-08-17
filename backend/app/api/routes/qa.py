@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.api.deps import client_ip, require_roles
+from app.core.ratelimit import check_rate_limit, get_rate_limit_headers
 from app.llm import LLMUnavailableError
 from app.models import User
 from app.qa import get_qa_service
@@ -13,12 +14,17 @@ router = APIRouter(prefix="/qa", tags=["qa"])
 @router.post("", response_model=QAResponse)
 def ask(
     request: Request,
+    response: Response,
     body: QARequest,
     user: User = Depends(require_roles("admin", "analyst", "viewer")),
 ) -> QAResponse:
+    remaining = check_rate_limit(str(user.id))
+    for k, v in get_rate_limit_headers(str(user.id)).items():
+        response.headers[k] = v
+
     service = get_qa_service()
     try:
-        response = service.answer(
+        resp = service.answer(
             body.question,
             top_k=body.top_k,
             document_ids=body.document_ids,
@@ -34,8 +40,8 @@ def ask(
             "question": body.question,
             "top_k": body.top_k,
             "document_ids": body.document_ids,
-            "unanswerable": response.unanswerable,
+            "unanswerable": resp.unanswerable,
         },
         ip_address=client_ip(request),
     )
-    return response
+    return resp
