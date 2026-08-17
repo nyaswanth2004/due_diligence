@@ -2,10 +2,11 @@ from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import select
 
 from app.api.routes.audit import router as audit_router
@@ -79,7 +80,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=True if settings.CORS_ORIGINS != ["*"] else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
