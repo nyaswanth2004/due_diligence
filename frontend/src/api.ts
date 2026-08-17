@@ -121,7 +121,7 @@ export interface AuditEntry {
   created_at: string;
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+const API_BASE = "https://due-diligence-1-pkdv.onrender.com";
 
 async function request<T>(path: string, init?: RequestInit, timeoutMs = 45000): Promise<T> {
   const token = localStorage.getItem("veritasiq_token");
