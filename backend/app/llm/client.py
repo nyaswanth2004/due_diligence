@@ -46,7 +46,7 @@ class OllamaClient(LLMClient):
         import httpx  # noqa: PLC0415
 
         self._client = httpx.Client(
-            base_url=base_url or settings.OLLAMA_BASE_URL, timeout=180
+            base_url=base_url or settings.ollama_base_url, timeout=180
         )
         self._model = model or settings.LLM_MODEL
 
@@ -75,7 +75,7 @@ class OllamaClient(LLMClient):
             response.raise_for_status()
         except Exception as exc:
             raise LLMUnavailableError(
-                f"Ollama at {settings.OLLAMA_BASE_URL} is unavailable ({exc}). "
+                f"Ollama at {settings.ollama_base_url} is unavailable ({exc}). "
                 "Start it with `docker compose up ollama` or `ollama serve`."
             ) from exc
         return response.json()["message"]["content"]
@@ -119,10 +119,63 @@ class FakeLLM(LLMClient):
         return "Deterministic narrative summary (fake backend)."
 
 
+class GroqClient(LLMClient):
+    """Chat completions via the Groq cloud API (OpenAI-compatible)."""
+
+    API_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+    def __init__(self) -> None:
+        import httpx  # noqa: PLC0415
+
+        self._client = httpx.Client(timeout=180)
+        self._model = settings.GROQ_MODEL
+        self._api_key = settings.GROQ_API_KEY
+
+    def generate(
+        self,
+        messages: list[dict],
+        *,
+        format: str | None = None,
+        temperature: float = 0.1,
+    ) -> str:
+        headers = {"Authorization": f"Bearer {self._api_key}"}
+        payload: dict = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": settings.LLM_NUM_PREDICT,
+        }
+        if format == "json":
+            payload["response_format"] = {"type": "json_object"}
+        try:
+            response = self._client.post(self.API_URL, json=payload, headers=headers)
+            response.raise_for_status()
+        except Exception as exc:
+            raise LLMUnavailableError(
+                f"Groq API is unavailable ({exc}). Check GROQ_API_KEY."
+            ) from exc
+        return response.json()["choices"][0]["message"]["content"]
+
+    def health(self) -> bool:
+        if not self._api_key:
+            return False
+        try:
+            headers = {"Authorization": f"Bearer {self._api_key}"}
+            response = self._client.get(
+                "https://api.groq.com/openai/v1/models", headers=headers, timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            return False
+
+
 @lru_cache
 def get_llm_client() -> LLMClient:
     if settings.LLM_BACKEND == "fake":
         logger.info("LLM backend: fake (deterministic)")
         return FakeLLM()
+    if settings.LLM_BACKEND == "groq":
+        logger.info("LLM backend: groq (%s)", settings.GROQ_MODEL)
+        return GroqClient()
     logger.info("LLM backend: ollama (%s)", settings.LLM_MODEL)
     return OllamaClient()

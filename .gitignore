@@ -1,16 +1,42 @@
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
 venv/
+
+# Environment
 .env
+
+# Database
 *.db
 *.sqlite3
+
+# Storage & vectors
 storage/
+
+# Build artifacts
 dist/
 build/
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# IDE
 .idea/
 .vscode/
-*.log
+
+# Node
 node_modules/
-*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test caches
+.pytest_cache/
+.ruff_cache/
+
+# HuggingFace model cache (downloaded at runtime)
+.hf/

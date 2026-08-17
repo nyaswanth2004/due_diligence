@@ -121,6 +121,8 @@ export interface AuditEntry {
   created_at: string;
 }
 
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+
 async function request<T>(path: string, init?: RequestInit, timeoutMs = 45000): Promise<T> {
   const token = localStorage.getItem("veritasiq_token");
   const headers = new Headers(init?.headers);
@@ -130,7 +132,7 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 45000): 
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
   try {
-    response = await fetch(path, { ...init, headers, signal: controller.signal });
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: controller.signal });
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";
     throw new Error(

@@ -59,7 +59,7 @@ export const Composer = React.forwardRef<ComposerHandle, ComposerProps>(function
   };
 
   return (
-    <div className="border-t border-white/8 bg-background/60 backdrop-blur-xl">
+    <div className="border-t border-white/8 bg-background/90">
       <div className="mx-auto max-w-3xl px-4 pb-4 pt-3">
         <AnimatePresence>
           {error && (

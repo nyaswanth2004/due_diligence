@@ -29,7 +29,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-white/8 bg-background/70 px-4 backdrop-blur-xl lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-white/8 bg-background/90 px-4 lg:px-6">
       <button
         onClick={onMenuClick}
         className="rounded-md p-2 text-muted hover:bg-white/10 hover:text-foreground lg:hidden"

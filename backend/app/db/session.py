@@ -32,6 +32,7 @@ def get_db():
 def create_all_tables() -> None:
     Base.metadata.create_all(bind=engine)
     _migrate_report_created_by()
+    _migrate_qa_cache()
 
 
 def _migrate_report_created_by() -> None:
@@ -49,5 +50,20 @@ def _migrate_report_created_by() -> None:
         ddl = "ALTER TABLE dd_reports ADD COLUMN IF NOT EXISTS created_by VARCHAR(36)"
     else:
         ddl = "ALTER TABLE dd_reports ADD COLUMN created_by VARCHAR(36)"
+    with engine.begin() as conn:
+        conn.execute(text(ddl))
+
+
+def _migrate_qa_cache() -> None:
+    """Create the qa_cache table if it doesn't exist."""
+    inspector = inspect(engine)
+    if "qa_cache" not in inspector.get_table_names():
+        return
+    if any(col["name"] == "hit_count" for col in inspector.get_columns("qa_cache")):
+        return
+    if engine.dialect.name == "postgresql":
+        ddl = "ALTER TABLE qa_cache ADD COLUMN IF NOT EXISTS hit_count INTEGER DEFAULT 0"
+    else:
+        ddl = "ALTER TABLE qa_cache ADD COLUMN hit_count INTEGER DEFAULT 0"
     with engine.begin() as conn:
         conn.execute(text(ddl))

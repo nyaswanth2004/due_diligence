@@ -43,11 +43,11 @@ export function ConversationHistory({
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden animate-fade-in" onClick={onClose} />
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden animate-fade-in" onClick={onClose} />
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/8 bg-surface/95 backdrop-blur-2xl transition-transform duration-200 ease-out lg:static lg:z-auto lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/8 bg-surface/98 transition-transform duration-200 ease-out lg:static lg:z-auto lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-[288px]"
         )}
       >

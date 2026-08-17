@@ -38,7 +38,7 @@ class OllamaEmbeddingService(EmbeddingService):
     def __init__(self) -> None:
         import httpx  # noqa: PLC0415
 
-        self._client = httpx.Client(base_url=settings.OLLAMA_BASE_URL, timeout=120)
+        self._client = httpx.Client(base_url=settings.ollama_base_url, timeout=120)
         self._model = settings.EMBEDDING_MODEL
 
     @property

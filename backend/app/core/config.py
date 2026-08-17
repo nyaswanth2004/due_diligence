@@ -28,12 +28,20 @@ class Settings(BaseSettings):
     MINIO_BUCKET_DOCUMENTS: str = "documents"
 
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    # Preferred way to configure the Ollama server URL (e.g. in Docker:
+    # OLLAMA_HOST=http://ollama:11434). OLLAMA_BASE_URL remains a
+    # backwards-compatible fallback for local development.
+    OLLAMA_HOST: str | None = None
     LLM_MODEL: str = "qwen2.5:7b"
 
-    # LLM backend: "ollama" (local) or "fake" (deterministic, tests/offline).
-    LLM_BACKEND: Literal["ollama", "fake"] = "ollama"
+    # LLM backend: "ollama" (local), "groq" (cloud, free tier), or "fake" (tests).
+    LLM_BACKEND: Literal["ollama", "groq", "fake"] = "ollama"
     LLM_TEMPERATURE: float = 0.1
     QA_MAX_HISTORY: int = 6
+
+    # Groq cloud LLM (free tier: 30 req/min)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
     # Ollama generation bounds: explicit context avoids silent truncation of
     # grounded prompts; num_predict caps answer length; keep_alive keeps the
@@ -86,6 +94,10 @@ class Settings(BaseSettings):
     @property
     def database_is_sqlite(self) -> bool:
         return self.database_sync_url.startswith("sqlite")
+
+    @property
+    def ollama_base_url(self) -> str:
+        return self.OLLAMA_HOST or self.OLLAMA_BASE_URL
 
 
 @lru_cache

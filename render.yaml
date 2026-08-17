@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: veritasiq-backend
+    runtime: python
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: LLM_BACKEND
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        value: sqlite:///./veritasiq.db
+      - key: STORAGE_BACKEND
+        value: local
+      - key: LOCAL_STORAGE_PATH
+        value: /tmp/veritasiq/storage/documents
+      - key: VECTOR_STORE_BACKEND
+        value: local
+      - key: VECTOR_INDEX_PATH
+        value: /tmp/veritasiq/storage/vectors
+      - key: EMBEDDING_BACKEND
+        value: sentence_transformers
+      - key: HF_HOME
+        value: /tmp/veritasiq/hf
+      - key: ADMIN_BOOTSTRAP
+        value: "true"
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@example.com
+      - key: ADMIN_ROLE
+        value: admin
+      - key: CORS_ORIGINS
+        value: '["https://veritasiq-frontend.onrender.com"]'

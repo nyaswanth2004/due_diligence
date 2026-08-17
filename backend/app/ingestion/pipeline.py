@@ -89,6 +89,23 @@ class IngestionPipeline:
                 "document %s ready: type=%s pages=%d chunks=%d (classifier=%.2f)",
                 document_id, doc_type, len(result.pages), len(chunks), confidence,
             )
+            try:
+                from app.models.qa_cache import QACache  # noqa: PLC0415
+                from app.db.session import SessionLocal  # noqa: PLC0415
+                db = SessionLocal()
+                try:
+                    stale = db.query(QACache).filter(
+                        QACache.document_ids.contains(document_id)
+                    ).all()
+                    for entry in stale:
+                        db.delete(entry)
+                    if stale:
+                        db.commit()
+                        logger.info("invalidated %d QA cache entries for document %s", len(stale), document_id)
+                finally:
+                    db.close()
+            except Exception:
+                pass
         except Exception as exc:
             session.rollback()
             logger.exception("ingestion failed for document %s", document_id)

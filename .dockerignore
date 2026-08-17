@@ -1,0 +1,68 @@
+# Keep the Docker build context small and secrets out of the image.
+
+# VCS
+.git
+**/.git
+
+# Secrets / local config (never copied into the image)
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# CI / platform metadata (not needed at build time)
+.github/
+deploy/
+vercel.json
+
+# Build / deploy metadata
+Dockerfile
+.dockerignore
+docker-compose.yml
+README.md
+
+# Legacy pre-refactor application (large sample PDFs)
+veritasiq/
+
+# Python
+.venv/
+**/.venv/
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+**/*.py[cod]
+*.egg-info/
+**/*.egg-info/
+.pytest_cache/
+**/.pytest_cache/
+.ruff_cache/
+**/.ruff_cache/
+.mypy_cache/
+**/.mypy_cache/
+backend/tests/
+backend/veritasiq.db
+backend/*.db
+backend/storage/
+backend/logs/
+*.log
+**/*.log
+backend/requirements-dev.txt
+
+# Node / frontend (rebuilt inside the image)
+node_modules/
+**/node_modules/
+frontend/dist/
+**/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# OS / editor cruft
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.idea/
+.vscode/

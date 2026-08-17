@@ -1,0 +1,17 @@
+[Unit]
+Description=VeritasIQ backend
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=simple
+User=veritasiq
+Group=veritasiq
+WorkingDirectory=/opt/veritasiq/backend
+ExecStart=/opt/veritasiq/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
