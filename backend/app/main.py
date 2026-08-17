@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import select
 
 from app.api.routes.audit import router as audit_router
 from app.api.routes.auth import router as auth_router
@@ -17,9 +18,11 @@ from app.api.routes.search import router as search_router
 from app.api.routes.users import router as users_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.core.security import hash_password
 from app import models  # noqa: F401  (register models before create_all)
-from app.db.session import create_all_tables
+from app.db.session import create_all_tables, SessionLocal
 from app.ingestion.pipeline import reconcile_index
+from app.models import User
 from app.services.queue import get_task_queue, shutdown_task_queue
 
 logger = logging.getLogger(__name__)
@@ -29,10 +32,32 @@ logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
+def _bootstrap_admin():
+    """Create admin user at startup if ADMIN_BOOTSTRAP is enabled."""
+    with SessionLocal() as session:
+        existing = session.execute(
+            select(User).where(User.username == settings.ADMIN_USERNAME)
+        ).scalar_one_or_none()
+        if existing:
+            logger.info("admin user '%s' already exists, skipping bootstrap", settings.ADMIN_USERNAME)
+            return
+        user = User(
+            username=settings.ADMIN_USERNAME,
+            email=settings.ADMIN_EMAIL,
+            password_hash=hash_password(settings.ADMIN_PASSWORD),
+            role=settings.ADMIN_ROLE,
+        )
+        session.add(user)
+        session.commit()
+        logger.info("bootstrapped admin user '%s'", settings.ADMIN_USERNAME)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging(settings.DEBUG)
     create_all_tables()
+    if settings.ADMIN_BOOTSTRAP:
+        _bootstrap_admin()
     get_task_queue()
     repaired = reconcile_index()
     if any(repaired.values()):

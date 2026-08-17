@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Admin bootstrap: create admin user on startup if none exists
+    ADMIN_BOOTSTRAP: bool = False
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "admin123"
+    ADMIN_EMAIL: str = "admin@example.com"
+    ADMIN_ROLE: str = "admin"
+
     @property
     def database_sync_url(self) -> str:
         url = self.DATABASE_URL
